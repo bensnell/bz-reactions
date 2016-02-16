@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ofMain.h"
+#include "bzReaction.h"
+#include "bzSeed.h"
+#include "ofxGui.h"
 
 class ofApp : public ofBaseApp{
 
@@ -20,5 +23,16 @@ class ofApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
+        void exit();
 		
+    bzReaction bz;
+    
+    ofEasyCam cam;
+    
+    ofParameter<int> drawingType;
+    ofParameter<bool> bDebug;
+    ofParameterGroup general;
+    
+    ofxPanel panel;
+    
 };

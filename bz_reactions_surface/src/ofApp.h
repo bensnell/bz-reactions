@@ -27,7 +27,7 @@ class ofApp : public ofBaseApp{
 		
     bzReaction bz;
     
-    ofLight light;
+    ofLight pointLight;
     
     ofEasyCam cam;
     
@@ -36,6 +36,8 @@ class ofApp : public ofBaseApp{
     ofParameter<int> reactionSpeed;
     ofParameter<bool> bAddSpring;
     ofParameter<bool> reset;
+    ofParameter<bool> bRunSimulation;
+    ofParameter<bool> saveMeshes;
     ofParameterGroup general;
     
     ofxPanel panel;

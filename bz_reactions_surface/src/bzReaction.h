@@ -61,6 +61,16 @@ public:
     void reset();
     
     // -----------------------------
+    // -------- MODIFIED FORM ------
+    // -----------------------------
+    
+    void updateMsrf();
+    
+    void drawMsrf();
+    
+    void saveMeshes();
+    
+    // -----------------------------
     // ---------- RENDERING --------
     // -----------------------------
     
@@ -69,8 +79,7 @@ public:
     
     // draw surfaces
     void drawSrf(int setting);
-    void drawMsrf();
-    
+    void drawMsrf(int setting);
     
     // -----------------------------
     // ------------ GUI ------------
@@ -82,6 +91,7 @@ public:
     
     ofParameter<float> renderScale;
     ofParameter<float> rotationSpeed;
+    ofParameter<float> offsetDist;
     ofParameterGroup rendering;
     
 };

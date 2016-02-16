@@ -17,11 +17,17 @@ bzReaction::bzReaction() {
     rendering.setName("Rendering");
     rendering.add(renderScale.set("Render Scale", 1, 0, 100));
     rendering.add(rotationSpeed.set("Rotation Speed", 10, 0, 100));
+    rendering.add(offsetDist.set("Offset Distance", 0.1, 0, 1));
     
     srf.setMode(OF_PRIMITIVE_TRIANGLES);
     srf.enableColors();
     srf.enableIndices();
     srf.enableNormals();
+    
+    msrf.setMode(OF_PRIMITIVE_TRIANGLES);
+    msrf.enableColors();
+    msrf.enableIndices();
+    msrf.enableNormals();
     
 }
 
@@ -30,6 +36,7 @@ bzReaction::bzReaction() {
 void bzReaction::loadSrf(string fileName) {
 
     srf.load(fileName);
+    msrf.load(fileName);
     
     cout << "Surface has been loaded with " << srf.getNumVertices() << " vertices, " << srf.getNumIndices() << " indices, " << srf.getNumNormals() << "normals, and " << srf.getNumColors() << " colors." << endl;
     
@@ -38,6 +45,10 @@ void bzReaction::loadSrf(string fileName) {
     // set all colors to black
     for (int i = 0, nColors = srf.getNumColors(); i < nColors; i++) {
         srf.getColors()[i] = ofFloatColor(0., 1.);
+        msrf.getColors()[i] = ofFloatColor(0., 1.);
+        
+//        srf.getNormals()[i].x /= 1000000000; // TEMP FOR BAD MESH
+//        msrf.getNormals()[i].x /= 1000000000;
     }
     
     // now construct an index dictionary for this surface (lookup of all connected indices for each index)
@@ -118,7 +129,6 @@ void bzReaction::addSeeds(int nSeeds) {
 void bzReaction::drawSrf(int setting) {
     
     ofPushMatrix();
-    ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
     ofScale(renderScale, renderScale, renderScale);
     
     srfRot += (ofGetElapsedTimef() - lastTime) * rotationSpeed;
@@ -234,18 +244,62 @@ void bzReaction::reset() {
     
 }
 
+// --------------------------------------------------------------------
 
+void bzReaction::updateMsrf() {
+    
+    // translate vertices in or out
+    for (int i = 0; i < nPts; i++) {
+        ofVec3f newPt = srf.getVertices()[i] * (1 + offsetDist * srf.getColors()[i].r);
+        msrf.getVertices()[i] = newPt;
+        
+//        cout << msrf.getNormals()[i].x << " " << msrf.getNormals()[i].y << " " << msrf.getNormals()[i].z << endl;
+    }
+    
+}
 
+// --------------------------------------------------------------------
 
+void bzReaction::drawMsrf(int setting) {
+    
+    ofPushMatrix();
+    ofScale(renderScale, renderScale, renderScale);
+    ofRotate(srfRot, 0, 1, 0);
+    
+    switch (setting) {
+        case 0:
+            msrf.drawVertices();
+            break;
+        case 1:
+            msrf.drawWireframe();
+            break;
+        case 2:
+            msrf.drawFaces();
+            break;
+        default:
+            msrf.drawWireframe();
+    }
+    
+    ofPopMatrix();
+}
 
+// --------------------------------------------------------------------
 
+void bzReaction::saveMeshes() {
 
+    stringstream ss;
+    ss << ofGetYear() << "-";
+    ss <<  setw(2) << setfill('0') << ofGetMonth() << "-";
+    ss <<  setw(2) << setfill('0') << ofGetDay() << " ";
+    ss <<  setw(2) << setfill('0') << ofGetHours() << "-";
+    ss <<  setw(2) << setfill('0') << ofGetMinutes() << "-";
+    ss <<  setw(2) << setfill('0') << ofGetSeconds();
+    string srfName = ss.str() + "_SRF.ply";
+    string msrfName = ss.str() + "_MSRF.ply";
 
-
-
-
-
-
+    srf.save(srfName);
+    msrf.save(msrfName);
+}
 
 
 

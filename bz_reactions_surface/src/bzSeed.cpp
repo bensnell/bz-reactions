@@ -12,14 +12,24 @@ bzSeed::bzSeed(int nTotalPts, float minDuration, float maxDuration) {
     
     index = floor(ofRandom(nTotalPts));
     
-    startTime = 0;
     duration = floor(ofRandom(minDuration, maxDuration));
 }
 
 // ------------------------------------------------------------------
 
-void bzSeed::updated() {
+// call after seed produces a new white spot
+void bzSeed::concentrate() {
     
     lastTimeOn = ofGetElapsedTimeMillis();
     
+    expectedConcentration = 1;
+    
+}
+
+// ------------------------------------------------------------------
+
+// call if not turned on
+void bzSeed::distill(float decayStrength) {
+    
+    expectedConcentration *= decayStrength;
 }

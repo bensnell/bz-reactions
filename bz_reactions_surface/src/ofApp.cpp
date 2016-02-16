@@ -2,10 +2,13 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-
+    
     general.setName("General");
     general.add(drawingType.set("Drawing Type", 1, 0, 2));
     general.add(bDebug.set("Debug", true));
+    general.add(reactionSpeed.set("Reaction Speed", 2, 1, 10));
+    general.add(bAddSpring.set("Add Another Spring", false));
+    general.add(reset.set("Reset", false));
     
     panel.setup();
     panel.add(bz.chemistry);
@@ -15,12 +18,30 @@ void ofApp::setup(){
     panel.loadFromFile("settings.xml");
     
     bz.loadSrf("blob.ply");
-    bz.addSeeds(10, 100, 2000);
+    bz.addSeeds(10, 500, 3000);
     
+//    ofEnableAlphaBlending();
+    ofEnableDepthTest();
+
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
+    
+    if (reset) {
+        bz.reset();
+        reset = false;
+    }
+    
+    if (bAddSpring) {
+        bz.addSeeds(1);
+        bAddSpring = false;
+    }
+    
+    if (ofGetFrameNum() % reactionSpeed == 0) {
+        bz.updateSeeds();
+        bz.react();
+    }
 
 }
 
@@ -28,17 +49,14 @@ void ofApp::update(){
 void ofApp::draw(){
     ofBackground(120);
     
-//    cam.begin();
-    
     bz.drawSrf(drawingType);
     
-//    cam.end();
-    
-    
+    ofDisableDepthTest();
     if (bDebug) {
-        ofDrawBitmapStringHighlight(ofToString(ofGetFrameRate()), 10, 20);
         panel.draw();
+        ofDrawBitmapStringHighlight(ofToString(ofGetFrameRate()), 10, 20);
     }
+    ofEnableDepthTest();
     
 }
 

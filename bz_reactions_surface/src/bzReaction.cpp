@@ -12,13 +12,11 @@ bzReaction::bzReaction() {
     
     chemistry.setName("Chemistry");
     chemistry.add(decayStrength.set("Decay Strength", 0.8, 0, 1));
+    chemistry.add(compoundedDecay.set("Compounded Decay", 1, 0, 1));
     
     rendering.setName("Rendering");
     rendering.add(renderScale.set("Render Scale", 1, 0, 100));
-    
-    panel.setup();
-    panel.add(chemistry);
-    panel.add(rendering);
+    rendering.add(rotationSpeed.set("Rotation Speed", 10, 0, 100));
     
     srf.setMode(OF_PRIMITIVE_TRIANGLES);
     srf.enableColors();
@@ -26,14 +24,6 @@ bzReaction::bzReaction() {
     srf.enableNormals();
     
 }
-
-// --------------------------------------------------------------------
-//
-//void bzReaction::saveSettings() {
-//    
-//    panel.saveToFile("settings.xml");
-//    
-//}
 
 // --------------------------------------------------------------------
 
@@ -90,11 +80,32 @@ void bzReaction::loadSrf(string fileName) {
 
 // --------------------------------------------------------------------
 
-void bzReaction::addSeeds(int nSeeds, float minDuration, float maxDuration) {
+void bzReaction::addSeeds(int nSeeds, float _minDuration, float _maxDuration) {
 
+    minDuration = _minDuration;
+    maxDuration = _maxDuration;
+    
     // add seeds and start reaction
     for (int i = 0; i < nSeeds; i++) {
         bzSeed thisSeed(nPts, minDuration, maxDuration);
+        thisSeed.concentrate();
+        
+        seeds.push_back(thisSeed);
+        
+        srf.getColors()[thisSeed.index] = ofFloatColor(1., 1.);
+    }
+    
+}
+
+// --------------------------------------------------------------------
+
+void bzReaction::addSeeds(int nSeeds) {
+    
+    // add seeds and start reaction
+    for (int i = 0; i < nSeeds; i++) {
+        bzSeed thisSeed(nPts, minDuration, maxDuration);
+        thisSeed.concentrate();
+        
         seeds.push_back(thisSeed);
         
         srf.getColors()[thisSeed.index] = ofFloatColor(1., 1.);
@@ -109,6 +120,13 @@ void bzReaction::drawSrf(int setting) {
     ofPushMatrix();
     ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
     ofScale(renderScale, renderScale, renderScale);
+    
+    srfRot += (ofGetElapsedTimef() - lastTime) * rotationSpeed;
+    srfRot = fmod(srfRot, 360.);
+    lastTime = ofGetElapsedTimef();
+    
+    ofRotate(srfRot, 0, 1, 0);
+
     
     switch (setting) {
         case 0:
@@ -125,6 +143,94 @@ void bzReaction::drawSrf(int setting) {
     }
     
     ofPopMatrix();
+    
+}
+
+// --------------------------------------------------------------------
+
+void bzReaction::updateSeeds() {
+
+//    if (seeds.size() >= 1) {
+//        cout << "there are " << seeds.size() << " seeds and the first has " << seeds[0].expectedConcentration << " expected and " << srf.getColors()[seeds[0].index].r << " actual concentration" << endl;
+//    }
+    
+    // delete seeds whose actual concentration differs from the expected concentration
+    float sigma = 0.00001;
+    for (int i = seeds.size() - 1; i >= 0; i--) {
+        if (abs(seeds[i].expectedConcentration - srf.getColors()[seeds[i].index].r) > sigma) {
+            seeds.erase(seeds.begin() + i);
+        }
+    }
+    
+    // if seed turned on more than the duration ago, turn it on again (set vertex to high concentration)
+    unsigned long timeNow = ofGetElapsedTimeMillis();
+    for (int i = 0, nSeeds = seeds.size(); i < nSeeds; i++) {
+        
+        if (timeNow - seeds[i].lastTimeOn > seeds[i].duration) {
+            
+            // make concentration high
+            srf.getColors()[seeds[i].index] = ofFloatColor(1., 1.);
+            
+            // reset seed
+            seeds[i].concentrate();
+            seeds[i].distill(decayStrength);
+            
+        } else {
+            // update expected concentration
+            seeds[i].distill(decayStrength);
+        }
+    }
+    
+//    cout << seeds.size() << endl;
+}
+
+// --------------------------------------------------------------------
+
+void bzReaction::react() {
+    
+    /*
+     Check every pixel against neighbors and apply a simple rule set. Let x = pixel brightness and b = decayStrength.
+     1. If x < b && neighbor == 255 Then x = 1
+     2. Otherwise, If x < 1, x = x * b
+     */
+ 
+    // first, multiply every vertex color by decayStrength and save the indices of pure white vertices
+    vector<int> whiteVertices;
+    for (int i = 0; i < nPts; i++) {
+        if (srf.getColors()[i].r == 1.) whiteVertices.push_back(i);
+        srf.getColors()[i] = ofFloatColor(srf.getColors()[i].r * decayStrength, 1.);
+    }
+    
+
+    // for every vertex that used to be white, make any connecting vertex (via the dictionary) white if its brightness is greater than or equal to the threshold squared.
+    float threshold = decayStrength * decayStrength;
+    for (int i = 0, end = whiteVertices.size(); i < end; i++) {
+        
+        // check all neighbors
+        for (int j = 0, neib = dict[whiteVertices[i]].size(); j < neib; j++) {
+            
+            int compareIndex = dict[whiteVertices[i]][j];
+            
+            if (srf.getColors()[compareIndex].r < threshold * compoundedDecay) {
+                // set to white
+                srf.getColors()[compareIndex] = ofFloatColor(1., 1.);
+            }
+        }
+    }
+    
+    
+    
+}
+
+// --------------------------------------------------------------------
+
+void bzReaction::reset() {
+    
+    seeds.clear();
+    for (int i = 0; i < nPts; i++) {
+        srf.getColors()[i] = ofFloatColor(0., 1.);
+    }
+    addSeeds(10, minDuration, maxDuration);
     
 }
 

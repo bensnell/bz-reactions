@@ -25,12 +25,13 @@ public:
     unsigned int duration;
     unsigned long lastTimeOn;
     
-    // call when seed is updated
-    void updated();
+    // call when seed is turned on
+    void concentrate();
+    // call when seed is not turned on
+    void distill(float decayStrength);
     
-    
-    
-    
+    float expectedConcentration;
+    bool bDelete = false;
     
 };
 

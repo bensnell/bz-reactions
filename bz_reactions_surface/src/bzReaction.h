@@ -42,18 +42,30 @@ public:
     vector<bzSeed> seeds;
     
     // add a given number of seeds and start the reaction for each
-    void addSeeds(int nSeeds, float minDuration, float maxDuration);
+    void addSeeds(int nSeeds, float _minDuration, float _maxDuration);
+    
+    void addSeeds(int nSeeds);
+    
+    int minDuration = 500;
+    int maxDuration = 3000;
     
     // -----------------------------
     // ---------- REACTION ---------
     // -----------------------------
     
+    void updateSeeds();
     
+    // progress one step in the reaction
+    void react();
     
+    void reset();
     
     // -----------------------------
     // ---------- RENDERING --------
     // -----------------------------
+    
+    float srfRot; // degrees
+    float lastTime = 0; // seconds
     
     // draw surfaces
     void drawSrf(int setting);
@@ -65,15 +77,12 @@ public:
     // -----------------------------
     
     ofParameter<float> decayStrength;
+    ofParameter<float> compoundedDecay;
     ofParameterGroup chemistry;
     
     ofParameter<float> renderScale;
+    ofParameter<float> rotationSpeed;
     ofParameterGroup rendering;
-    
-    ofxPanel panel;
-    
-    void saveSettings();
-    
     
 };
 

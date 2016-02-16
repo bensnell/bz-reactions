@@ -27,10 +27,15 @@ class ofApp : public ofBaseApp{
 		
     bzReaction bz;
     
+    ofLight light;
+    
     ofEasyCam cam;
     
     ofParameter<int> drawingType;
     ofParameter<bool> bDebug;
+    ofParameter<int> reactionSpeed;
+    ofParameter<bool> bAddSpring;
+    ofParameter<bool> reset;
     ofParameterGroup general;
     
     ofxPanel panel;

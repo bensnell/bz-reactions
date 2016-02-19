@@ -35,10 +35,16 @@ class ofApp : public ofBaseApp{
     ofParameter<bool> bDebug;
     ofParameter<int> reactionSpeed;
     ofParameter<bool> bAddSpring;
-    ofParameter<bool> reset;
     ofParameter<bool> bRunSimulation;
     ofParameter<bool> saveMeshes;
+    ofParameter<bool> loadFullScreen;
     ofParameterGroup general;
+    
+    ofParameter<bool> reset;
+    ofParameter<int> nSeeds;
+    ofParameter<int> minDur; // ms
+    ofParameter<int> maxDur;
+    ofParameterGroup newReaction;
     
     ofxPanel panel;
     

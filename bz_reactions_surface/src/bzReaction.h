@@ -27,6 +27,8 @@ public:
     ofMesh srf;
     // modified surface
     ofMesh msrf;
+    // eroded surface
+    ofMesh esrf;
     
     // load surface
     void loadSrf(string fileName);
@@ -58,15 +60,18 @@ public:
     // progress one step in the reaction
     void react();
     
-    void reset();
+    void reset(int minDur = -1, int maxDur = -1);
     
     // -----------------------------
-    // -------- MODIFIED FORM ------
+    // ------- MODIFIED FORMS ------
     // -----------------------------
     
     void updateMsrf();
     
-    void drawMsrf();
+    float* eroHist; // erosion history
+    float minEro;
+    float maxEro;
+    void updateEsrf();
     
     void saveMeshes();
     
@@ -76,10 +81,15 @@ public:
     
     float srfRot; // degrees
     float lastTime = 0; // seconds
+
+    // if we're ever drawing something, rotate it
+    int lastRotFrame = -1;
+    void updateRotation();
     
     // draw surfaces
     void drawSrf(int setting);
     void drawMsrf(int setting);
+    void drawEsrf(int setting);
     
     // -----------------------------
     // ------------ GUI ------------
@@ -93,6 +103,11 @@ public:
     ofParameter<float> rotationSpeed;
     ofParameter<float> offsetDist;
     ofParameterGroup rendering;
+    
+    ofParameter<float> minErosion;
+    ofParameter<bool> flipErosion;
+    ofParameter<bool> reuseMesh;
+    ofParameterGroup erosion;
     
 };
 

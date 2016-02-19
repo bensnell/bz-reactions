@@ -18,6 +18,11 @@ bzReaction::bzReaction() {
     rendering.add(renderScale.set("Render Scale", 1, 0, 100));
     rendering.add(rotationSpeed.set("Rotation Speed", 10, 0, 100));
     rendering.add(offsetDist.set("Offset Distance", 0.1, 0, 1));
+
+    erosion.setName("Erosion");
+    erosion.add(minErosion.set("Min Erosion", 0.1, 0, 1));
+    erosion.add(flipErosion.set("Flip Direction", false));
+    erosion.add(reuseMesh.set("Reuse Mesh at Reset", true));
     
     srf.setMode(OF_PRIMITIVE_TRIANGLES);
     srf.enableColors();
@@ -29,6 +34,10 @@ bzReaction::bzReaction() {
     msrf.enableIndices();
     msrf.enableNormals();
     
+    esrf.setMode(OF_PRIMITIVE_TRIANGLES);
+    esrf.enableColors();
+    esrf.enableIndices();
+    esrf.enableNormals();
 }
 
 // --------------------------------------------------------------------
@@ -37,6 +46,7 @@ void bzReaction::loadSrf(string fileName) {
 
     srf.load(fileName);
     msrf.load(fileName);
+    esrf.load(fileName);
     
     cout << "Surface has been loaded with " << srf.getNumVertices() << " vertices, " << srf.getNumIndices() << " indices, " << srf.getNumNormals() << "normals, and " << srf.getNumColors() << " colors." << endl;
     
@@ -46,6 +56,7 @@ void bzReaction::loadSrf(string fileName) {
     for (int i = 0, nColors = srf.getNumColors(); i < nColors; i++) {
         srf.getColors()[i] = ofFloatColor(0., 1.);
         msrf.getColors()[i] = ofFloatColor(0., 1.);
+        
         
 //        srf.getNormals()[i].x /= 1000000000; // TEMP FOR BAD MESH
 //        msrf.getNormals()[i].x /= 1000000000;
@@ -86,6 +97,12 @@ void bzReaction::loadSrf(string fileName) {
 //        }
 //        cout << endl;
 //    }
+    
+    // allocate space for the erosion history
+    eroHist = new float [nPts];
+    // set array entries to zero
+    memset(eroHist, 0, nPts);
+    
     
 }
 
@@ -128,12 +145,10 @@ void bzReaction::addSeeds(int nSeeds) {
 
 void bzReaction::drawSrf(int setting) {
     
+    updateRotation();
+    
     ofPushMatrix();
     ofScale(renderScale, renderScale, renderScale);
-    
-    srfRot += (ofGetElapsedTimef() - lastTime) * rotationSpeed;
-    srfRot = fmod(srfRot, 360.);
-    lastTime = ofGetElapsedTimef();
     
     ofRotate(srfRot, 0, 1, 0);
 
@@ -228,19 +243,32 @@ void bzReaction::react() {
         }
     }
     
-    
+    // assign srf colors to the eroded surface mesh
+    esrf.getColors() = srf.getColors();
+
     
 }
 
 // --------------------------------------------------------------------
 
-void bzReaction::reset() {
+void bzReaction::reset(int minDur, int maxDur) {
+    
+    if (minDur >= 0) minDuration = minDur;
+    if (maxDur >= 0) maxDuration = maxDur;
     
     seeds.clear();
     for (int i = 0; i < nPts; i++) {
         srf.getColors()[i] = ofFloatColor(0., 1.);
     }
     addSeeds(10, minDuration, maxDuration);
+    esrf.getColors() = srf.getColors();
+    
+    if (!reuseMesh) {
+        for (int i = 0; i < nPts; i++) {
+            eroHist[i] = 0.;
+        }
+    }
+    
     
 }
 
@@ -261,6 +289,8 @@ void bzReaction::updateMsrf() {
 // --------------------------------------------------------------------
 
 void bzReaction::drawMsrf(int setting) {
+    
+    updateRotation();
     
     ofPushMatrix();
     ofScale(renderScale, renderScale, renderScale);
@@ -296,9 +326,79 @@ void bzReaction::saveMeshes() {
     ss <<  setw(2) << setfill('0') << ofGetSeconds();
     string srfName = ss.str() + "_SRF.ply";
     string msrfName = ss.str() + "_MSRF.ply";
+    string esrfName = ss.str() + "_ESRF.ply";
 
     srf.save(srfName);
     msrf.save(msrfName);
+    esrf.save(esrfName);
+}
+
+// --------------------------------------------------------------------
+
+void bzReaction::updateEsrf() {
+    
+    // record the reaction history for each vertex
+    minEro = 99999.;
+    maxEro = 0.;
+    for (int i = 0; i < nPts; i++) {
+        eroHist[i] += srf.getColors()[i].r;
+        if (eroHist[i] < minEro) minEro = eroHist[i];
+        if (eroHist[i] > maxEro) maxEro = eroHist[i];
+    }
+    
+    // translate the vertices of the mesh inward / outward depending on the reaction's recorded history
+    float rangeFrom = maxEro - minEro;
+    float rangeTo = 1. - minErosion;
+    for (int i = 0; i < nPts; i++) {
+        float normScale = (eroHist[i] - minEro) / rangeFrom;
+        if (flipErosion) normScale = 1 - normScale;
+        esrf.getVertices()[i] = srf.getVertices()[i] * (normScale * rangeTo + minErosion);
+    }
+    
+}
+
+// --------------------------------------------------------------------
+
+void bzReaction::drawEsrf(int setting) {
+    
+    updateRotation();
+    
+    ofPushMatrix();
+    ofScale(renderScale, renderScale, renderScale);
+    ofRotate(srfRot, 0, 1, 0);
+    
+    switch (setting) {
+        case 0:
+            esrf.drawVertices();
+            break;
+        case 1:
+            esrf.drawWireframe();
+            break;
+        case 2:
+            esrf.drawFaces();
+            break;
+        default:
+            esrf.drawWireframe();
+    }
+    
+    ofPopMatrix();
+}
+
+// --------------------------------------------------------------------
+
+void bzReaction::updateRotation() {
+    
+    // update rotation if we haven't this frame
+    if (ofGetFrameNum() != lastRotFrame) {
+        lastRotFrame = ofGetFrameNum();
+        
+        // update rotation
+        srfRot += (ofGetElapsedTimef() - lastTime) * rotationSpeed;
+        srfRot = fmod(srfRot, 360.);
+        lastTime = ofGetElapsedTimef();
+    }
+    
+    
 }
 
 

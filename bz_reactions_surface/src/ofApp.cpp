@@ -8,19 +8,27 @@ void ofApp::setup(){
     general.add(bDebug.set("Debug", true));
     general.add(reactionSpeed.set("Reaction Speed", 2, 1, 10));
     general.add(bAddSpring.set("Add Another Spring", false));
-    general.add(reset.set("Reset", false));
     general.add(bRunSimulation.set("Run Simulation", true));
     general.add(saveMeshes.set("Save PLY", false));
+    general.add(loadFullScreen.set("Load Fullscreen", true));
+    
+    newReaction.setName("New Reaction");
+    newReaction.add(reset.set("Reset", false));
+    newReaction.add(nSeeds.set("Num Seeds", 10, 1, 25));
+    newReaction.add(minDur.set("Min Duration", 500, 1, 2000));
+    newReaction.add(maxDur.set("Max Duration", 3000, 10, 5000));
     
     panel.setup();
     panel.add(bz.chemistry);
     panel.add(bz.rendering);
+    panel.add(bz.erosion);
     panel.add(general);
+    panel.add(newReaction);
     
     panel.loadFromFile("settings.xml");
     
     bz.loadSrf("blob.ply");
-    bz.addSeeds(10, 500, 3000);
+    bz.addSeeds(nSeeds, minDur, maxDur);
     
 //    ofEnableAlphaBlending();
     ofEnableDepthTest();
@@ -28,6 +36,8 @@ void ofApp::setup(){
 //    ofSetSmoothLighting(true);
 //    pointLight.setDiffuseColor( ofFloatColor(.85, .85, .85) );
 //    pointLight.setSpecularColor( ofFloatColor(1.f, 1.f, 1.f));
+    
+    if (loadFullScreen) ofSetFullscreen(true);
 
 }
 
@@ -40,7 +50,7 @@ void ofApp::update(){
     }
     
     if (reset) {
-        bz.reset();
+        bz.reset(minDur, maxDur);
         reset = false;
     }
     
@@ -53,6 +63,7 @@ void ofApp::update(){
         bz.updateSeeds();
         bz.react();
         bz.updateMsrf();
+        bz.updateEsrf(); // call after reacting
     }
 
 }
@@ -62,17 +73,17 @@ void ofApp::draw(){
     ofBackground(120);
     
     ofPushMatrix();
-    ofTranslate(ofGetWidth() * 0.25, ofGetHeight()/2);
-    bz.drawSrf(drawingType);
+    ofTranslate(ofGetWidth() * 0.5, ofGetHeight()/2);
+    bz.drawEsrf(drawingType);
     ofPopMatrix();
     
 //    ofEnableLighting();
 //    pointLight.enable();
     
-    ofPushMatrix();
-    ofTranslate(ofGetWidth() * 0.75, ofGetHeight()/2);
-    bz.drawMsrf(drawingType);
-    ofPopMatrix();
+//    ofPushMatrix();
+//    ofTranslate(ofGetWidth() * 0.75, ofGetHeight()/2);
+//    bz.drawMsrf(drawingType);
+//    ofPopMatrix();
     
 //    ofDisableLighting();
 //    pointLight.draw();
